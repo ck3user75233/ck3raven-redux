@@ -1,0 +1,321 @@
+"""
+Data Models for ck3raven Database
+
+Dataclasses representing database entities with helper methods.
+
+CONTENT-KEYED (January 2026 Flag Day):
+- symbols: ast_id, name, symbol_type, scope, line_number, column_number
+- refs: ast_id, name, ref_type, context, line_number, column_number
+- NO file_id or content_version_id in symbols/refs
+- File association derived via Golden Join: symbols → asts → files
+"""
+
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Optional, List, Dict, Any
+from pathlib import Path
+import json
+
+
+@dataclass
+class ContentVersion:
+    """A specific version of vanilla or a mod, with identity columns inline."""
+    content_version_id: Optional[str] = None
+    name: str = ""
+    source_path: Optional[str] = None
+    workshop_id: Optional[str] = None
+    source_url: Optional[str] = None
+    notes: Optional[str] = None
+    content_root_hash: str = ""
+    file_count: int = 0
+    total_size: int = 0
+    ingested_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    
+    @classmethod
+    def from_row(cls, row) -> "ContentVersion":
+        return cls(
+            content_version_id=row['content_version_id'],
+            name=row['name'] if 'name' in row.keys() else '',
+            source_path=row['source_path'] if 'source_path' in row.keys() else None,
+            workshop_id=row['workshop_id'] if 'workshop_id' in row.keys() else None,
+            content_root_hash=row['content_root_hash'],
+            file_count=row['file_count'],
+            total_size=row['total_size'],
+            ingested_at=row['ingested_at'],
+        )
+    
+    def __repr__(self):
+        return f"ContentVersion({self.name}, hash={self.content_root_hash[:12]}...)"
+
+
+@dataclass
+class FileContent:
+    """Deduplicated file content stored by SHA256 hash."""
+    content_hash: str = ""
+    content_blob: bytes = b""
+    content_text: Optional[str] = None
+    size: int = 0
+    encoding_guess: Optional[str] = None
+    is_binary: bool = False
+    created_at: Optional[datetime] = None
+    
+    @classmethod
+    def from_row(cls, row) -> "FileContent":
+        return cls(
+            content_hash=row['content_hash'],
+            content_blob=row['content_blob'],
+            content_text=row['content_text'],
+            size=row['size'],
+            encoding_guess=row['encoding_guess'],
+            is_binary=bool(row['is_binary']),
+            created_at=row['created_at'],
+        )
+
+
+@dataclass
+class FileRecord:
+    """A file in a specific content version."""
+    file_id: Optional[int] = None
+    content_version_id: str = ""
+    relpath: str = ""
+    content_hash: str = ""
+    file_type: Optional[str] = None
+    mtime: Optional[str] = None
+    deleted: bool = False
+    
+    @classmethod
+    def from_row(cls, row) -> "FileRecord":
+        return cls(
+            file_id=row['file_id'],
+            content_version_id=row['content_version_id'],
+            relpath=row['relpath'],
+            content_hash=row['content_hash'],
+            file_type=row['file_type'],
+            mtime=row['mtime'],
+            deleted=bool(row['deleted']),
+        )
+    
+    def __repr__(self):
+        return f"FileRecord({self.relpath})"
+
+
+@dataclass
+class ParserVersion:
+    """Parser version for cache invalidation."""
+    parser_version_id: Optional[int] = None
+    version_string: str = ""
+    git_commit: Optional[str] = None
+    description: Optional[str] = None
+    created_at: Optional[datetime] = None
+    
+    @classmethod
+    def from_row(cls, row) -> "ParserVersion":
+        return cls(
+            parser_version_id=row['parser_version_id'],
+            version_string=row['version_string'],
+            git_commit=row['git_commit'],
+            description=row['description'],
+            created_at=row['created_at'],
+        )
+    
+    def __repr__(self):
+        return f"ParserVersion({self.version_string})"
+
+
+@dataclass
+class ASTRecord:
+    """Parsed AST for a file, keyed by (content_hash, parser_version)."""
+    ast_id: Optional[int] = None
+    content_hash: str = ""
+    parser_version_id: int = 0
+    ast_blob: bytes = b""
+    ast_format: str = "json"
+    parse_ok: bool = True
+    node_count: Optional[int] = None
+    diagnostics: List[Dict[str, Any]] = field(default_factory=list)
+    created_at: Optional[datetime] = None
+    
+    @property
+    def diagnostics_json(self) -> str:
+        return json.dumps(self.diagnostics)
+    
+    @classmethod
+    def from_row(cls, row) -> "ASTRecord":
+        return cls(
+            ast_id=row['ast_id'],
+            content_hash=row['content_hash'],
+            parser_version_id=row['parser_version_id'],
+            ast_blob=row['ast_blob'],
+            ast_format=row['ast_format'],
+            parse_ok=bool(row['parse_ok']),
+            node_count=row['node_count'],
+            diagnostics=json.loads(row['diagnostics_json']) if row['diagnostics_json'] else [],
+            created_at=row['created_at'],
+        )
+    
+    def __repr__(self):
+        status = "OK" if self.parse_ok else "FAILED"
+        return f"ASTRecord({self.content_hash[:12]}..., {status})"
+
+
+@dataclass
+class Symbol:
+    """A symbol definition (something that defines a name/ID/key).
+    
+    CONTENT-KEYED (January 2026 Flag Day):
+    - Binds to ast_id ONLY (content identity)
+    - NO file_id or content_version_id
+    - File association derived via Golden Join: symbols → asts → files
+    """
+    symbol_id: Optional[int] = None
+    ast_id: int = 0               # FK to asts (REQUIRED - content identity)
+    name: str = ""
+    symbol_type: str = ""         # 'trait', 'event', 'decision', etc.
+    scope: Optional[str] = None
+    line_number: Optional[int] = None
+    column_number: Optional[int] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    @property
+    def metadata_json(self) -> str:
+        return json.dumps(self.metadata)
+    
+    @classmethod
+    def from_row(cls, row) -> "Symbol":
+        return cls(
+            symbol_id=row['symbol_id'],
+            ast_id=row['ast_id'],
+            name=row['name'],
+            symbol_type=row['symbol_type'],
+            scope=row.get('scope'),
+            line_number=row.get('line_number'),
+            column_number=row.get('column_number'),
+            metadata=json.loads(row['metadata_json']) if row.get('metadata_json') else {},
+        )
+    
+    def __repr__(self):
+        return f"Symbol({self.symbol_type}:{self.name})"
+
+
+@dataclass
+class Reference:
+    """A reference to a symbol (something that uses a name).
+    
+    CONTENT-KEYED (January 2026 Flag Day):
+    - Binds to ast_id ONLY (content identity)
+    - NO file_id or content_version_id
+    - File association derived via Golden Join: refs → asts → files
+    """
+    ref_id: Optional[int] = None
+    ast_id: int = 0               # FK to asts (REQUIRED - content identity)
+    name: str = ""
+    ref_type: str = ""            # 'trait_ref', 'event_ref', etc.
+    context: Optional[str] = None
+    line_number: Optional[int] = None
+    column_number: Optional[int] = None
+    resolution_status: str = "unresolved"
+    resolved_symbol_id: Optional[int] = None
+    candidates: List[int] = field(default_factory=list)
+    
+    @property
+    def candidates_json(self) -> str:
+        return json.dumps(self.candidates) if self.candidates else None
+    
+    @classmethod
+    def from_row(cls, row) -> "Reference":
+        return cls(
+            ref_id=row['ref_id'],
+            ast_id=row['ast_id'],
+            name=row['name'],
+            ref_type=row['ref_type'],
+            context=row.get('context'),
+            line_number=row.get('line_number'),
+            column_number=row.get('column_number'),
+            resolution_status=row.get('resolution_status', 'unresolved'),
+            resolved_symbol_id=row.get('resolved_symbol_id'),
+            candidates=json.loads(row['candidates_json']) if row.get('candidates_json') else [],
+        )
+    
+    def __repr__(self):
+        return f"Reference({self.ref_type}:{self.name}, {self.resolution_status})"
+
+
+# EXPUNGED 2025-01-02: Playset and PlaysetMod models removed.
+# Playsets are now file-based JSON. See playsets/*.json and server.py ck3_playset.
+# 
+# The database-based playset models (Playset, PlaysetMod with playset_id) are BANNED.
+# See docs/CANONICAL_ARCHITECTURE.md for details.
+
+
+@dataclass
+class Snapshot:
+    """A frozen, immutable package capturing state at a point in time."""
+    snapshot_id: Optional[int] = None
+    name: str = ""
+    description: Optional[str] = None
+    vanilla_version_id: str = ""
+    playset_id: Optional[int] = None
+    parser_version_id: Optional[int] = None
+    ruleset_version: Optional[str] = None
+    include_ast: bool = True
+    include_refs: bool = True
+    created_at: Optional[datetime] = None
+    
+    # Populated separately
+    members: List[str] = field(default_factory=list)  # content_version_ids
+    
+    @classmethod
+    def from_row(cls, row) -> "Snapshot":
+        return cls(
+            snapshot_id=row['snapshot_id'],
+            name=row['name'],
+            description=row['description'],
+            vanilla_version_id=row['vanilla_version_id'],
+            playset_id=row['playset_id'],
+            parser_version_id=row['parser_version_id'],
+            ruleset_version=row['ruleset_version'],
+            include_ast=bool(row['include_ast']),
+            include_refs=bool(row['include_refs']),
+            created_at=row['created_at'],
+        )
+    
+    def __repr__(self):
+        return f"Snapshot({self.name}, {len(self.members)} versions)"
+
+
+# NOTE: ExemplarMod is a deprecated concept - see CANONICAL_ARCHITECTURE.md banned terms
+# Keeping model for backwards compatibility with existing code that may reference it
+@dataclass
+class ExemplarMod:
+    """A curated exemplar mod for linter-by-example. DEPRECATED."""
+    exemplar_id: Optional[int] = None
+    mod_package_id: int = 0
+    pinned_content_version_id: Optional[str] = None
+    reason_tags: List[str] = field(default_factory=list)
+    topics: List[str] = field(default_factory=list)
+    notes: Optional[str] = None
+    created_at: Optional[datetime] = None
+    
+    @property
+    def reason_tags_json(self) -> str:
+        return json.dumps(self.reason_tags)
+    
+    @property
+    def topics_json(self) -> str:
+        return json.dumps(self.topics)
+    
+    @classmethod
+    def from_row(cls, row) -> "ExemplarMod":
+        return cls(
+            exemplar_id=row['exemplar_id'],
+            mod_package_id=row['mod_package_id'],
+            pinned_content_version_id=row['pinned_content_version_id'],
+            reason_tags=json.loads(row['reason_tags_json']) if row['reason_tags_json'] else [],
+            topics=json.loads(row['topics_json']) if row['topics_json'] else [],
+            notes=row['notes'],
+            created_at=row['created_at'],
+        )
+    
+    def __repr__(self):
+        return f"ExemplarMod({self.mod_package_id}, topics={self.topics})"

@@ -1,0 +1,343 @@
+{
+  "version": 2,
+  "match_order": [
+    "GIT_INTERNALS",
+    "GITHUB_META",
+    "VSCODE_SETTINGS",
+    "CHAR_HISTORY",
+    "PROVINCE_HISTORY",
+    "NAME_LISTS",
+    "HOLY_SITES",
+    "DYNASTIES",
+    "LICENSES",
+    "SKIP_FILES",
+    "GUI_CONTENT",
+    "GFX_CONTENT",
+    "MAP_DATA",
+    "FONTS",
+    "MUSIC",
+    "SOUND",
+    "DLC_META",
+    "CONTENT_SOURCE",
+    "BINARY_ASSETS",
+    "LOCALIZATION",
+    "PDX_SCRIPT",
+    "UNKNOWN"
+  ],
+  "file_types": {
+    "GIT_INTERNALS": {
+      "envelope": "SKIP",
+      "notes": "Git repository internals",
+      "match": {
+        "path_prefixes": [
+          ".git/"
+        ]
+      }
+    },
+    "GITHUB_META": {
+      "envelope": "SKIP",
+      "notes": "GitHub metadata",
+      "match": {
+        "path_prefixes": [
+          ".github/"
+        ]
+      }
+    },
+    "VSCODE_SETTINGS": {
+      "envelope": "SKIP",
+      "notes": "VS Code settings",
+      "match": {
+        "path_prefixes": [
+          ".vscode/"
+        ]
+      }
+    },
+    "CHAR_HISTORY": {
+      "envelope": "LOOKUP_CHARACTERS",
+      "notes": "Character history files",
+      "match": {
+        "path_prefixes": [
+          "history/characters/"
+        ]
+      }
+    },
+    "PROVINCE_HISTORY": {
+      "envelope": "LOOKUP_PROVINCES",
+      "notes": "Province history files",
+      "match": {
+        "path_prefixes": [
+          "history/provinces/"
+        ]
+      }
+    },
+    "NAME_LISTS": {
+      "envelope": "LOOKUP_NAMES",
+      "notes": "Culture name lists",
+      "match": {
+        "path_prefixes": [
+          "common/culture/name_lists/"
+        ]
+      }
+    },
+    "HOLY_SITES": {
+      "envelope": "LOOKUP_HOLY_SITES",
+      "notes": "Religion holy sites",
+      "match": {
+        "path_prefixes": [
+          "common/religion/holy_sites/"
+        ]
+      }
+    },
+    "DYNASTIES": {
+      "envelope": "LOOKUP_DYNASTIES",
+      "notes": "Dynasty definition files",
+      "match": {
+        "path_prefixes": [
+          "common/dynasties/"
+        ]
+      }
+    },
+    "LICENSES": {
+      "envelope": "SKIP",
+      "notes": "License text files",
+      "match": {
+        "path_prefixes": [
+          "licenses/"
+        ]
+      }
+    },
+    "SKIP_FILES": {
+      "envelope": "SKIP",
+      "notes": "Non-script text files (credits, changelogs, READMEs, etc.)",
+      "match": {
+        "path_contains": [
+          "credits.txt",
+          "credit.txt",
+          "description.txt",
+          "compatibility.txt",
+          "modding_info.txt",
+          "steam_description.txt",
+          "changelog",
+          "changes.txt",
+          "notes.txt",
+          "intr.txt",
+          "specialthankscontributors.txt",
+          "house_traditions.txt",
+          "readme",
+          "faq.txt",
+          "relic_list.txt",
+          "welcome to the super compatch"
+        ]
+      }
+    },
+    "GUI_CONTENT": {
+      "envelope": "SKIP",
+      "notes": "GUI definition files",
+      "match": {
+        "path_prefixes": [
+          "gui/"
+        ]
+      }
+    },
+    "GFX_CONTENT": {
+      "envelope": "SKIP",
+      "notes": "Graphics definitions",
+      "match": {
+        "path_prefixes": [
+          "gfx/"
+        ]
+      }
+    },
+    "MAP_DATA": {
+      "envelope": "SKIP",
+      "notes": "Map data files",
+      "match": {
+        "path_prefixes": [
+          "map_data/"
+        ]
+      }
+    },
+    "FONTS": {
+      "envelope": "SKIP",
+      "notes": "Font files",
+      "match": {
+        "path_prefixes": [
+          "fonts/"
+        ]
+      }
+    },
+    "MUSIC": {
+      "envelope": "SKIP",
+      "notes": "Music files",
+      "match": {
+        "path_prefixes": [
+          "music/"
+        ]
+      }
+    },
+    "SOUND": {
+      "envelope": "SKIP",
+      "notes": "Sound files",
+      "match": {
+        "path_prefixes": [
+          "sound/"
+        ]
+      }
+    },
+    "DLC_META": {
+      "envelope": "SKIP",
+      "notes": "DLC metadata",
+      "match": {
+        "path_prefixes": [
+          "dlc_metadata/"
+        ]
+      }
+    },
+    "CONTENT_SOURCE": {
+      "envelope": "SKIP",
+      "notes": "Content source files",
+      "match": {
+        "path_prefixes": [
+          "content_source/"
+        ]
+      }
+    },
+    "BINARY_ASSETS": {
+      "envelope": "SKIP",
+      "notes": "Binary/media files (images, audio, meshes, etc.)",
+      "match": {
+        "extensions": [
+          ".dds",
+          ".png",
+          ".jpg",
+          ".jpeg",
+          ".gif",
+          ".bmp",
+          ".tga",
+          ".wav",
+          ".mp3",
+          ".ogg",
+          ".bank",
+          ".wem",
+          ".mesh",
+          ".anim",
+          ".skeleton",
+          ".asset",
+          ".settings",
+          ".shader",
+          ".mod",
+          ".ttf",
+          ".otf",
+          ".fnt",
+          ".bik",
+          ".bk2",
+          ".psd",
+          ".gui",
+          ".gfx",
+          ".json",
+          ".py",
+          ".info",
+          ".md"
+        ]
+      }
+    },
+    "LOCALIZATION": {
+      "envelope": "LOC",
+      "notes": "Localization YAML files",
+      "match": {
+        "extensions": [
+          ".yml"
+        ]
+      }
+    },
+    "PDX_SCRIPT": {
+      "envelope": "SCRIPT",
+      "notes": "Paradox script files",
+      "match": {
+        "extensions": [
+          ".txt"
+        ]
+      }
+    },
+    "UNKNOWN": {
+      "envelope": "SKIP",
+      "notes": "Fallback — unrecognized files are skipped",
+      "match": {}
+    }
+  },
+  "envelopes": {
+    "SCRIPT": {
+      "steps": [
+        "parse",
+        "extract_symbols",
+        "extract_refs"
+      ]
+    },
+    "LOC": {
+      "steps": [
+        "parse_loc",
+        "extract_loc_entries"
+      ]
+    },
+    "LOOKUP_CHARACTERS": {
+      "steps": [
+        "extract_characters"
+      ]
+    },
+    "LOOKUP_PROVINCES": {
+      "steps": [
+        "extract_provinces"
+      ]
+    },
+    "LOOKUP_NAMES": {
+      "steps": [
+        "extract_names"
+      ]
+    },
+    "LOOKUP_HOLY_SITES": {
+      "steps": [
+        "extract_holy_sites"
+      ]
+    },
+    "LOOKUP_DYNASTIES": {
+      "steps": [
+        "extract_dynasties"
+      ]
+    },
+    "SKIP": {
+      "steps": []
+    }
+  },
+  "steps": {
+    "parse": {
+      "order": 1
+    },
+    "extract_symbols": {
+      "order": 2
+    },
+    "extract_refs": {
+      "order": 3
+    },
+    "parse_loc": {
+      "order": 1
+    },
+    "extract_loc_entries": {
+      "order": 2
+    },
+    "extract_characters": {
+      "order": 1
+    },
+    "extract_provinces": {
+      "order": 1
+    },
+    "extract_names": {
+      "order": 1
+    },
+    "extract_holy_sites": {
+      "order": 1
+    },
+    "extract_dynasties": {
+      "order": 1
+    }
+  }
+}

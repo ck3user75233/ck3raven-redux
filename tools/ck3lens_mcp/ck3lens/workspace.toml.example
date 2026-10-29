@@ -1,0 +1,32 @@
+# CK3Raven workspace configuration template
+#
+# The runtime copy belongs at:
+#   ~/.ck3raven/config/workspace.toml
+# or beneath the directory selected by CK3RAVEN_DATA.
+#
+# Copy this template, set the paths for the current machine, and restart
+# VS Code. Never commit the populated runtime copy because it contains
+# machine-specific absolute paths.
+
+[paths]
+# Required for ck3raven development mode.
+root_repo = ""
+
+# Optional source repository used by ck3chronicle integrations.
+root_ck3chronicle_repo = ""
+
+# Required CK3 installation and Steam Workshop content roots.
+root_game = ""
+root_steam = ""
+
+# Optional on supported platforms; OS defaults are used when left empty.
+root_user_docs = ""
+root_vscode = ""
+
+# Optional; defaults to <root_user_docs>/mod when left empty.
+local_mods_folder = ""
+
+[options]
+validate_paths_on_startup = true
+create_missing_directories = true
+warn_on_default_paths = true

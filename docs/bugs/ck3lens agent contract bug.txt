@@ -1,0 +1,53 @@
+{
+  "reply_type": "S",
+  "code": "CT-OPEN-S-001",
+  "message": "Contract opened: v1-2026-02-24-4bc9ba",
+  "data": {
+    "success": true,
+    "contract_id": "v1-2026-02-24-4bc9ba",
+    "expires_at": "2026-02-25T06:30:38.295602",
+    "mode": "ck3lens",
+    "root_category": "ROOT_REPO",
+    "operations": [
+      "READ",
+      "WRITE"
+    ]
+  },
+  "trace": {
+    "trace_id": "6c038740b83940c5",
+    "session_id": "e2ad2ea6aebf44aa"
+  },
+  "meta": {
+    "layer": "CT",
+    "tool": "ck3_contract"
+  }
+}
+{
+  "reply_type": "S",
+  "code": "CT-OPEN-S-001",
+  "message": "Contract opened: v1-2026-02-24-4bc9ba",
+  "data": {
+    "success": true,
+    "contract_id": "v1-2026-02-24-4bc9ba",
+    "expires_at": "2026-02-25T06:30:38.295602",
+    "mode": "ck3lens",
+    "root_category": "ROOT_REPO",
+    "operations": [
+      "READ",
+      "WRITE"
+    ]
+  },
+  "trace": {
+    "trace_id": "6c038740b83940c5",
+    "session_id": "e2ad2ea6aebf44aa"
+  },
+  "meta": {
+    "layer": "CT",
+    "tool": "ck3_contract",
+    "contract_id": null
+  }
+}
+
+
+ck3lens agent could open a contract to edit repo root - which should not be possible
+

@@ -1,0 +1,25 @@
+{
+  "schema_version": "1",
+  "description": "Commands whitelisted for ck3_exec without script signing. HAT-protected.",
+  "commands": [
+    "python -m pytest",
+    "python -m qbuilder",
+    "python -m tools.compliance.run_arch_lint_locked",
+    "python -m tools.arch_lint",
+    "python builder/daemon.py",
+    "python --version",
+    "pip install",
+    "pip list",
+    "pip show",
+    "npm run compile",
+    "npm run package",
+    "npm run watch",
+    "npm run esbuild",
+    "npm run lint",
+    "npm run test",
+    "npm install",
+    "npx vsce package",
+    "code --install-extension",
+    "python scripts/export_for_review.py"
+  ]
+}

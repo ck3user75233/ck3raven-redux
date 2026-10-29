@@ -1,0 +1,169 @@
+﻿# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Project-specific
+output/
+resolved_output/
+*.pkl
+*.json.cache
+registry_cache*.json
+registry_cache*.pkl
+refdb.json
+learned_schema.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local machine-specific config (NEVER COMMIT THESE)
+playset_manifest.json
+active_mod_paths.json
+local_config.py
+ck3lens_config.yaml
+ck3lens_config.json
+
+# VS Code MCP settings (machine-specific paths)
+.vscode/mcp.json
+.vscode/mcp-config.json
+
+# Generated database (large, machine-specific)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Test artifacts (gitignored per repository rules)
+.artifacts/
+*.log
+*.tmp
+.ruff_cache/
+
+# WIP workspace for ck3raven-dev mode (analysis/staging only)
+.wip/
+
+# Runtime databases
+*.sqlite
+
+# VS Code workspace files (machine-specific)
+*.code-workspace
+
+# Generated/exported files
+ck3lens_validation_issues.jsonl
+ck3lens_trace.jsonl
+exports/
+
+# User playset data (runtime config)
+playsets/
+
+# Temp fix scripts
+tools/ck3lens_mcp/fix_*.py
+
+# Runtime artifacts
+artifacts/
+
+# Codex/agent worktrees and large local-only data directories
+# (These caused VS Code's Git extension to enumerate tens of thousands of
+# untracked files on every status poll, contributing to severe lag and
+# the "too many active changes" warning - see investigation 2026-08-22/23.)
+.ck3raven/
+.codex-worktrees/
+outputs/
+
+# Historical/deprecated material excluded from clean distribution snapshots
+archive/
+legacy/
+proofs/
+*.zip
+
+# One-off migration/fix scripts and generated reports
+fix_wip_scope.py
+lint_results.json
+docs/BANCHECK_RESULTS.txt
+docs/BANNED_TERM_SCAN.txt
+tools/ck3lens-explorer/src/mcp/test.md
+tools/ck3lens_mcp/ck3lens/test_write.txt
+tools/ck3lens_mcp/launcher.py
+*.backup
+

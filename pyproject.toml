@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ck3raven"
+version = "0.1.0"
+description = "CK3 game state emulator - parses, merges, and resolves mod conflicts"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "ck3raven contributors"}
+]
+keywords = [
+    "crusader-kings-3",
+    "ck3",
+    "modding",
+    "parser",
+    "paradox",
+    "game-state",
+    "merge",
+    "compatch"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+# Core dependencies
+dependencies = [
+    "pyyaml>=6.0",  # For builder config files
+    "libcst>=1.0",  # Python CST parsing for indexing (Sprint 2.1)
+    "watchdog>=3.0",  # Filesystem watcher for live-edit → rebuild loop
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+mcp = [
+    # TypeScript indexer (optional, falls back to regex)
+    "tree-sitter>=0.21",
+    "tree-sitter-typescript>=0.21",
+]
+
+[project.urls]
+Homepage = "https://github.com/ck3user75233/ck3raven"
+Repository = "https://github.com/ck3user75233/ck3raven"
+Issues = "https://github.com/ck3user75233/ck3raven/issues"
+
+[project.scripts]
+ck3raven = "ck3raven.cli:main"
+ck3lens-export-chats = "ck3raven.tools.journal_extractor:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+
+[tool.coverage.run]
+source = ["src/ck3raven"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+]

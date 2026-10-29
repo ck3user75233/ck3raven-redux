@@ -1,0 +1,571 @@
+"""
+CK3/Paradox Script Lexer (Tokenizer)
+
+Converts raw .txt script files into a stream of tokens.
+Handles: identifiers, operators, braces, strings, numbers, comments.
+"""
+
+from dataclasses import dataclass
+from enum import Enum, auto
+import re
+from typing import Iterator, List, Optional
+
+
+_LEADING_BOM_ARTIFACTS_RE = re.compile(r"^(?:\ufeff|ï»¿)+")
+
+
+def normalize_source_text(source: str) -> str:
+    """Repair common encoding artifacts before lexing.
+
+    This stays intentionally narrow: strip BOM-related garbage that often appears
+    in workshop files after double-decoding or editor rewrites, while preserving
+    the rest of the source as-is.
+    """
+    if not source:
+        return source
+
+    normalized = _LEADING_BOM_ARTIFACTS_RE.sub("", source)
+    if "\ufeff" in normalized:
+        normalized = normalized.replace("\ufeff", "")
+    return normalized
+
+
+class TokenType(Enum):
+    """Types of tokens in Paradox script."""
+    IDENTIFIER = auto()      # foo, bar_baz, tradition_mountain_homes
+    STRING = auto()          # "quoted string"
+    NUMBER = auto()          # 123, -0.5, 0.25
+    EQUALS = auto()          # =
+    LBRACE = auto()          # {
+    RBRACE = auto()          # }
+    LBRACKET = auto()        # [
+    RBRACKET = auto()        # ]
+    LESS_THAN = auto()       # <
+    GREATER_THAN = auto()    # >
+    LESS_EQUAL = auto()      # <=
+    GREATER_EQUAL = auto()   # >=
+    NOT_EQUAL = auto()       # !=
+    COMPARE_EQUAL = auto()   # ==
+    QUESTION = auto()        # ?
+    QUESTION_EQUALS = auto() # ?= (null-safe equals)
+    COLON = auto()           # :
+    AT = auto()              # @ (for scripted values like @my_value)
+    PLUS = auto()            # + (in expressions)
+    MINUS = auto()           # - (standalone, not part of number)
+    STAR = auto()            # * (multiplication)
+    SLASH = auto()           # / (division)
+    PARAM = auto()           # $PARAM$ (parameter substitution)
+    COMMENT = auto()         # # comment to end of line
+    NEWLINE = auto()         # \n
+    EOF = auto()             # End of file
+    BOOL = auto()            # yes, no
+    COMMA = auto()           # , (used in some defines like { "a", "b" })
+    SEMICOLON = auto()       # ; (not standard CK3, but some mods use it - we ignore it)
+    BACKTICK = auto()        # ` (not standard CK3, but appears in some mods - we ignore it)
+
+
+@dataclass
+class Token:
+    """A single token from the lexer.
+    
+    Attributes:
+        type: Token type
+        value: Token text
+        line: 1-based line number
+        column: 1-based column number
+        start_offset: Character offset (inclusive) into source string
+        end_offset: Character offset (exclusive) into source string
+    """
+    type: TokenType
+    value: str
+    line: int
+    column: int
+    start_offset: int = 0  # Character index (inclusive) into source
+    end_offset: int = 0    # Character index (exclusive) into source
+    
+    def __repr__(self):
+        if self.type == TokenType.NEWLINE:
+            return f"Token({self.type.name}, '\\n', L{self.line}:{self.column}, [{self.start_offset}:{self.end_offset}])"
+        return f"Token({self.type.name}, {self.value!r}, L{self.line}:{self.column}, [{self.start_offset}:{self.end_offset}])"
+
+
+class LexerError(Exception):
+    """Error during lexical analysis."""
+    def __init__(self, message: str, line: int, column: int):
+        self.line = line
+        self.column = column
+        super().__init__(f"Lexer error at line {line}, column {column}: {message}")
+
+
+class Lexer:
+    """
+    Tokenizer for Paradox/CK3 script files.
+    
+    Usage:
+        lexer = Lexer(source_text)
+        tokens = list(lexer.tokenize())
+    """
+    
+    # Characters that can appear in identifiers
+    # Note: | is used in define:Namespace|CONSTANT syntax
+    # Note: & can appear in identifiers (eliminate_&_replace_faith_effect)
+    # Note: ' (apostrophe) can appear in some barony names (b_mansa'l-kharaz)
+    # Note: / is used in sound paths (event:/SFX/Events/...)
+    # Note: Unicode letters allowed for names like Linnéa, Θ (theta), etc.
+    # Note: % can appear in identifiers (SUCCESS_%) and number suffixes (29%)
+    # Note: - (hyphen) can appear in character IDs (724-Venice-1-Marcello) and barony names
+    # Note: Curly apostrophes/dashes and U+FFFD can show up after mixed-encoding repair.
+    IDENT_SPECIAL = set("_.|&'-:/%-’‘ʼ‑–—")  # Special chars allowed in identifiers
+    
+    @staticmethod
+    def _is_ident_start(ch: str) -> bool:
+        """Check if character can start an identifier (letter or underscore)."""
+        return ch == '_' or ch.isalpha() or ch == '\ufffd'
+    
+    @staticmethod  
+    def _is_ident_cont(ch: str) -> bool:
+        """Check if character can continue an identifier."""
+        return ch.isalnum() or ch in Lexer.IDENT_SPECIAL or ch == '\ufffd'
+    
+    def __init__(self, source: str, filename: str = "<unknown>"):
+        self.source = normalize_source_text(source)
+        self.filename = filename
+        self.pos = 0
+        self.line = 1
+        self.column = 1
+        self.length = len(self.source)
+    
+    def _current(self) -> Optional[str]:
+        """Get current character or None if at end."""
+        if self.pos >= self.length:
+            return None
+        return self.source[self.pos]
+    
+    def _peek(self, offset: int = 1) -> Optional[str]:
+        """Peek ahead by offset characters."""
+        pos = self.pos + offset
+        if pos >= self.length:
+            return None
+        return self.source[pos]
+    
+    def _advance(self) -> Optional[str]:
+        """Advance one character and return it."""
+        ch = self._current()
+        if ch is not None:
+            self.pos += 1
+            if ch == '\n':
+                self.line += 1
+                self.column = 1
+            else:
+                self.column += 1
+        return ch
+    
+    def _skip_whitespace(self) -> None:
+        """Skip spaces and tabs (but not newlines)."""
+        while self._current() in (' ', '\t', '\r'):
+            self._advance()
+    
+    def _read_string(self, quote_char: str = '"') -> str:
+        """Read a quoted string, handling escapes. Supports both " and ' quotes."""
+        start_line = self.line
+        start_col = self.column
+        
+        # Skip opening quote
+        self._advance()
+        
+        result = []
+        while True:
+            ch = self._current()
+            if ch is None:
+                raise LexerError("Unterminated string", start_line, start_col)
+            if ch == quote_char:
+                self._advance()  # Skip closing quote
+                break
+            if ch == '\\':
+                # Handle escape sequences
+                self._advance()
+                esc = self._current()
+                if esc == 'n':
+                    result.append('\n')
+                elif esc == 't':
+                    result.append('\t')
+                elif esc == quote_char:
+                    result.append(quote_char)
+                elif esc == '\\':
+                    result.append('\\')
+                else:
+                    # Unknown escape, keep as-is
+                    result.append('\\')
+                    if esc:
+                        result.append(esc)
+                self._advance()
+            else:
+                result.append(ch)
+                self._advance()
+        
+        return ''.join(result)
+    
+    def _read_identifier(self) -> str:
+        """Read an identifier (including dotted names like scope.thing).
+        
+        Note: Identifiers in CK3 can start with digits (e.g., 0_levels_above_expected_level)
+        so this may be called when current char is a digit.
+        """
+        result = []
+        while True:
+            ch = self._current()
+            if ch is None:
+                break
+            # Allow digits and ident continuation chars
+            if self._is_ident_cont(ch) or ch.isdigit():
+                result.append(ch)
+                self._advance()
+            else:
+                break
+        return ''.join(result)
+    
+    def _read_number(self) -> str:
+        """Read a number, decimal, or CK3 date literal.
+
+        CK3 dates have the form ``digits.digits.digits`` (e.g. ``724.1.1``).
+        Decimals have at most one dot (e.g. ``0.5``).  After consuming the
+        first ``digits.digits`` segment we peek for a second ``.digits``
+        suffix — if present it is a date and we consume the second dot too.
+        """
+        result = []
+        # Handle negative sign
+        if self._current() == '-':
+            result.append('-')
+            self._advance()
+
+        # Read digits before any dot
+        while self._current() and self._current().isdigit():
+            result.append(self._current())
+            self._advance()
+
+        # First dot — could be decimal (0.5) or start of date (724.1.1)
+        if self._current() == '.' and self._peek() and self._peek().isdigit():
+            result.append('.')
+            self._advance()
+            while self._current() and self._current().isdigit():
+                result.append(self._current())
+                self._advance()
+
+            # Second dot — CK3 date pattern (724.1.1)
+            if self._current() == '.' and self._peek() and self._peek().isdigit():
+                result.append('.')
+                self._advance()
+                while self._current() and self._current().isdigit():
+                    result.append(self._current())
+                    self._advance()
+
+        # Check for trailing % (e.g., 29% in GUI position values)
+        if self._current() == '%':
+            result.append('%')
+            self._advance()
+
+        return ''.join(result)
+    
+    def _read_comment(self) -> str:
+        """Read a comment from # to end of line."""
+        result = []
+        # Skip the #
+        self._advance()
+        while True:
+            ch = self._current()
+            if ch is None or ch == '\n':
+                break
+            result.append(ch)
+            self._advance()
+        return ''.join(result)
+    
+    def tokenize(self, include_comments: bool = False, include_newlines: bool = False) -> Iterator[Token]:
+        """
+        Generate tokens from the source.
+        
+        Args:
+            include_comments: If True, emit COMMENT tokens. Otherwise skip them.
+            include_newlines: If True, emit NEWLINE tokens. Otherwise skip them.
+        
+        Each token includes start_offset and end_offset (character indices into source).
+        """
+        while True:
+            self._skip_whitespace()
+            
+            ch = self._current()
+            start_line = self.line
+            start_col = self.column
+            start_offset = self.pos  # Character offset into source string
+            
+            if ch is None:
+                yield Token(TokenType.EOF, '', start_line, start_col, start_offset, start_offset)
+                break
+            
+            # Newline
+            if ch == '\n':
+                self._advance()
+                if include_newlines:
+                    yield Token(TokenType.NEWLINE, '\n', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            # Comment
+            if ch == '#':
+                comment = self._read_comment()
+                if include_comments:
+                    yield Token(TokenType.COMMENT, comment, start_line, start_col, start_offset, self.pos)
+                continue
+            
+            # String (double or single quoted)
+            if ch == '"':
+                value = self._read_string('"')
+                yield Token(TokenType.STRING, value, start_line, start_col, start_offset, self.pos)
+                continue
+            
+            if ch == "'":
+                value = self._read_string("'")
+                yield Token(TokenType.STRING, value, start_line, start_col, start_offset, self.pos)
+                continue
+            
+            # Operators (multi-char first)
+            if ch == '<':
+                self._advance()
+                if self._current() == '=':
+                    self._advance()
+                    yield Token(TokenType.LESS_EQUAL, '<=', start_line, start_col, start_offset, self.pos)
+                else:
+                    yield Token(TokenType.LESS_THAN, '<', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            if ch == '>':
+                self._advance()
+                if self._current() == '=':
+                    self._advance()
+                    yield Token(TokenType.GREATER_EQUAL, '>=', start_line, start_col, start_offset, self.pos)
+                else:
+                    yield Token(TokenType.GREATER_THAN, '>', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            if ch == '!':
+                self._advance()
+                if self._current() == '=':
+                    self._advance()
+                    yield Token(TokenType.NOT_EQUAL, '!=', start_line, start_col, start_offset, self.pos)
+                else:
+                    # Standalone ! is not valid in CK3 script syntax
+                    raise LexerError(f"Unexpected character '!'", start_line, start_col)
+                continue
+            
+            if ch == '=':
+                self._advance()
+                if self._current() == '=':
+                    self._advance()
+                    yield Token(TokenType.COMPARE_EQUAL, '==', start_line, start_col, start_offset, self.pos)
+                else:
+                    yield Token(TokenType.EQUALS, '=', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            # Single-char operators
+            if ch == '{':
+                self._advance()
+                yield Token(TokenType.LBRACE, '{', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            if ch == '}':
+                self._advance()
+                yield Token(TokenType.RBRACE, '}', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            if ch == '?':
+                self._advance()
+                # Check for ?= (null-coalescing equals)
+                if self._current() == '=':
+                    self._advance()
+                    yield Token(TokenType.QUESTION_EQUALS, '?=', start_line, start_col, start_offset, self.pos)
+                else:
+                    yield Token(TokenType.QUESTION, '?', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            if ch == ':':
+                self._advance()
+                yield Token(TokenType.COLON, ':', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            if ch == '@':
+                self._advance()
+                yield Token(TokenType.AT, '@', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            # Brackets for inline expressions like @[value + 10]
+            if ch == '[':
+                self._advance()
+                yield Token(TokenType.LBRACKET, '[', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            if ch == ']':
+                self._advance()
+                yield Token(TokenType.RBRACKET, ']', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            # Math operators for inline expressions
+            if ch == '+':
+                self._advance()
+                yield Token(TokenType.PLUS, '+', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            if ch == '-':
+                # Check if this is a negative number or standalone minus
+                if self._peek() and self._peek().isdigit():
+                    value = self._read_number()
+                    yield Token(TokenType.NUMBER, value, start_line, start_col, start_offset, self.pos)
+                else:
+                    self._advance()
+                    yield Token(TokenType.MINUS, '-', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            if ch == '*':
+                self._advance()
+                yield Token(TokenType.STAR, '*', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            if ch == '/':
+                self._advance()
+                yield Token(TokenType.SLASH, '/', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            # Comma (used in some defines like { "friend", "rival" })
+            if ch == ',':
+                self._advance()
+                yield Token(TokenType.COMMA, ',', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            # Semicolon (not standard CK3, but some mods use it as statement terminator)
+            # We emit the token but parser will ignore it
+            if ch == ';':
+                self._advance()
+                yield Token(TokenType.SEMICOLON, ';', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            # Backtick (not standard CK3, appears in some mod typos)
+            # We emit the token but parser will ignore it
+            if ch == '`':
+                self._advance()
+                yield Token(TokenType.BACKTICK, '`', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            # Parameter substitution: $PARAM$
+            if ch == '$':
+                self._advance()
+                param_name = []
+                while self._current() and self._current() not in ('$', ' ', '\t', '\n', '\r', '=', '{', '}'):
+                    param_name.append(self._advance())
+                if self._current() == '$':
+                    self._advance()
+                yield Token(TokenType.PARAM, '$' + ''.join(param_name) + '$', start_line, start_col, start_offset, self.pos)
+                continue
+            
+            # Number OR identifier starting with digit
+            # CK3 allows identifiers like 0_levels_above_expected_level
+            # and hyphenated IDs like 724-Venice-1-Marcello
+            if ch.isdigit():
+                # Look ahead: if followed by underscore or letter, it's an identifier
+                peek = self._peek()
+                if peek and (peek == '_' or peek.isalpha()):
+                    # Identifier starting with digit - read as identifier
+                    value = self._read_identifier()
+                    yield Token(TokenType.IDENTIFIER, value, start_line, start_col, start_offset, self.pos)
+                else:
+                    # Read as number first, then check for hyphenated identifier
+                    value = self._read_number()
+                    # If number is immediately followed by - and letter/digit, it's a
+                    # hyphenated identifier like 724-Venice-1-Marcello
+                    if self._current() == '-' and self._peek() and (self._peek().isalpha() or self._peek() == '_'):
+                        # Rewind to start and re-read as identifier (with hyphens)
+                        self.pos = start_offset
+                        self.line = start_line
+                        self.column = start_col
+                        value = self._read_identifier()
+                        yield Token(TokenType.IDENTIFIER, value, start_line, start_col, start_offset, self.pos)
+                    else:
+                        yield Token(TokenType.NUMBER, value, start_line, start_col, start_offset, self.pos)
+                continue
+            
+            # Identifier (or yes/no boolean)
+            # Identifier (including scope chains like .host after $PARAM$)
+            # Allow . at start for scope continuation
+            if self._is_ident_start(ch) or ch == '.':
+                value = self._read_identifier()
+                # If it's just a dot, skip forward for the actual identifier
+                if value == '.':
+                    # Standalone dot - treat as continuation marker for scope chain
+                    value = '.' + self._read_identifier()
+                if value in ('yes', 'no'):
+                    yield Token(TokenType.BOOL, value, start_line, start_col, start_offset, self.pos)
+                else:
+                    yield Token(TokenType.IDENTIFIER, value, start_line, start_col, start_offset, self.pos)
+                continue
+            
+            # Unknown character
+            raise LexerError(f"Unexpected character {ch!r}", start_line, start_col)
+    
+    def tokenize_all(self, include_comments: bool = False, include_newlines: bool = False) -> List[Token]:
+        """Convenience method to get all tokens as a list."""
+        return list(self.tokenize(include_comments, include_newlines))
+
+
+def tokenize_file(filepath: str, **kwargs) -> List[Token]:
+    """Tokenize a file and return all tokens. Handles encoding fallback with error recovery.
+    
+    Mixed-encoding files (UTF-8 with some Windows-1252 characters) are handled
+    gracefully using errors='replace' to substitute invalid bytes with U+FFFD.
+    """
+    source = None
+    
+    # Try UTF-8 with BOM first (with error replacement for mixed-encoding files)
+    try:
+        with open(filepath, 'r', encoding='utf-8-sig', errors='replace') as f:
+            source = f.read()
+    except Exception:
+        pass
+    
+    # Fallback: Try plain UTF-8 with error replacement  
+    if source is None:
+        try:
+            with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
+                source = f.read()
+        except Exception:
+            pass
+    
+    # Final fallback: latin-1 (always succeeds)
+    if source is None:
+        with open(filepath, 'r', encoding='latin-1') as f:
+            source = f.read()
+    
+    lexer = Lexer(source, filename=filepath)
+    return lexer.tokenize_all(**kwargs)
+
+
+if __name__ == "__main__":
+    # Quick test
+    test_source = '''
+    # This is a comment
+    tradition_mountain_homes = {
+        name = "Mountain Homes"
+        description = "A test tradition"
+        
+        ai_will_do = {
+            base = 10
+            modifier = {
+                factor = 2
+                has_trait = brave
+            }
+        }
+        
+        heavy_infantry_damage = 0.15
+        enabled = yes
+    }
+    '''
+    
+    lexer = Lexer(test_source, "<test>")
+    print("Tokens:")
+    for token in lexer.tokenize():
+        print(f"  {token}")

@@ -1,0 +1,281 @@
+{
+  "name": "ck3lens-explorer",
+  "displayName": "CK3 Lens Explorer",
+  "description": "CK3 Lens MCP lifecycle management, agent and contracts tooling, diagnostics, and CK3 syntax highlighting",
+  "version": "0.1.0",
+  "publisher": "ck3-modding",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ck3user75233/ck3raven"
+  },
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "ck3",
+    "crusader kings 3",
+    "paradox",
+    "clausewitz",
+    "modding",
+    "ck3raven",
+    "mcp"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "chatParticipants": [
+      {
+        "id": "ck3raven",
+        "name": "ck3raven",
+        "description": "CK3 modding assistant with database access and mod editing",
+        "isSticky": true
+      }
+    ],
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "ck3lens-mcp",
+        "label": "CK3 Lens MCP Server"
+      }
+    ],
+    "languages": [
+      {
+        "id": "paradox-script",
+        "aliases": [
+          "Paradox Script",
+          "CK3 Script",
+          "Clausewitz"
+        ],
+        "extensions": [
+          ".txt"
+        ],
+        "configuration": "./language-configuration.json",
+        "firstLine": "^#.*[Ee]vent|^#.*[Dd]ecision|^#.*[Tt]rait|^#.*[Cc]ulture"
+      },
+      {
+        "id": "paradox-localization",
+        "aliases": [
+          "Paradox Localization",
+          "CK3 Localization"
+        ],
+        "extensions": [
+          ".yml"
+        ],
+        "configuration": "./language-configuration.json",
+        "firstLine": "^l_english:|^l_french:|^l_german:|^l_spanish:|^l_simp_chinese:|^l_russian:|^l_korean:"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "paradox-script",
+        "scopeName": "source.paradox-script",
+        "path": "./syntaxes/paradox-script.tmLanguage.json"
+      },
+      {
+        "language": "paradox-localization",
+        "scopeName": "source.paradox-localization",
+        "path": "./syntaxes/paradox-localization.tmLanguage.json"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ck3lens",
+          "title": "CK3 Lens",
+          "icon": "media/ck3lens-sidebar.svg"
+        }
+      ]
+    },
+    "views": {
+      "ck3lens": [
+        {
+          "id": "ck3lens.agentView",
+          "name": "Tools",
+          "type": "tree",
+          "icon": "$(tools)",
+          "contextualTitle": "CK3 Lens",
+          "visibility": "visible"
+        },
+        {
+          "id": "ck3lens.contractsView",
+          "name": "Contracts & Operations",
+          "type": "tree",
+          "icon": "$(notebook)",
+          "contextualTitle": "CK3 Lens",
+          "visibility": "visible"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "ck3lens.refreshViews",
+        "title": "CK3 Lens: Refresh All Views",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ck3lens.contracts.showOperationDetails",
+        "title": "CK3 Lens: Show Operation Details",
+        "icon": "$(info)"
+      },
+      {
+        "command": "ck3lens.contracts.viewBugReports",
+        "title": "CK3 Lens: View Bug Reports",
+        "icon": "$(bug)"
+      },
+      {
+        "command": "ck3lens.contracts.refresh",
+        "title": "CK3 Lens: Refresh Contracts View",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ck3lens.contracts.fileBugReport",
+        "title": "CK3 Lens: File Bug Report",
+        "icon": "$(bug)"
+      },
+      {
+        "command": "ck3lens.agent.initialize",
+        "title": "Initialize Agent",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ck3lens.agent.initializeWithMode",
+        "title": "Initialize Agent with Mode",
+        "icon": "$(symbol-event)"
+      },
+      {
+        "command": "ck3lens.agent.reinitialize",
+        "title": "Re-initialize Agent",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ck3lens.agent.addSubAgent",
+        "title": "Add Sub-agent",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ck3lens.agent.clearAll",
+        "title": "Clear All Agents",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ck3lens.agent.copyInstanceId",
+        "title": "Copy MCP Instance ID",
+        "icon": "$(key)"
+      },
+      {
+        "command": "ck3lens.agent.mintHat",
+        "title": "Mint HAT (Human Authorization Token)",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "ck3raven.chat.health",
+        "title": "CK3 Raven: Health Check",
+        "icon": "$(heart)"
+      },
+      {
+        "command": "ck3raven.doctor",
+        "title": "CK3 Raven: Doctor (Diagnostics)",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "ck3raven.checkStatus",
+        "title": "CK3 Raven: Quick Status Check",
+        "icon": "$(check)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "ck3lens.refreshViews",
+          "when": "view =~ /ck3lens\\./",
+          "group": "navigation"
+        },
+        {
+          "command": "ck3lens.agent.initializeWithMode",
+          "when": "view == ck3lens.agentView",
+          "group": "navigation"
+        },
+        {
+          "command": "ck3lens.agent.clearAll",
+          "when": "view == ck3lens.agentView",
+          "group": "navigation"
+        },
+        {
+          "command": "ck3lens.agent.mintHat",
+          "when": "view == ck3lens.agentView",
+          "group": "navigation"
+        },
+        {
+          "command": "ck3lens.contracts.refresh",
+          "when": "view == ck3lens.contractsView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ck3lens.contracts.fileBugReport",
+          "when": "view == ck3lens.contractsView",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "ck3lens.agent.reinitialize",
+          "when": "view == ck3lens.agentView && viewItem == agent",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CK3 Lens",
+      "properties": {
+        "ck3lens.traceLevel": {
+          "type": "string",
+          "enum": [
+            "off",
+            "error",
+            "info",
+            "debug"
+          ],
+          "default": "info",
+          "description": "Logging level for CK3 Lens"
+        },
+        "ck3lens.ipcPort": {
+          "type": "number",
+          "default": 0,
+          "description": "TCP port for diagnostics IPC server. 0 = OS-assigned dynamic port (recommended for multi-window)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run esbuild-base -- --production",
+    "esbuild-base": "node esbuild.js",
+    "esbuild": "npm run esbuild-base -- --sourcemap",
+    "esbuild-watch": "npm run esbuild-base -- --watch",
+    "compile": "npm run esbuild",
+    "watch": "npm run esbuild-watch",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "npm run esbuild-base -- --production && vsce package --allow-missing-repository",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.100.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^2.22.0",
+    "esbuild": "^0.20.2",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.2"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.2.0"
+  }
+}

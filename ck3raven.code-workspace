@@ -1,0 +1,33 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../.ck3raven"
+		}
+	],
+	"settings": {
+		"python.analysis.typeCheckingMode": "standard",
+		"python.defaultInterpreterPath": "C:/Users/nateb/Documents/CK3 Mod Project 1.18/ck3raven/.venv/Scripts/python.exe",
+		"ck3lens.pythonPath": "C:/Users/nateb/Documents/CK3 Mod Project 1.18/ck3raven/.venv/Scripts/python.exe",
+		"ck3lens.ck3ravenPath": "C:/Users/nateb/Documents/CK3 Mod Project 1.18/ck3raven",
+		"ck3lens.autoInitialize": true,
+		"files.exclude": {
+			"**/__pycache__": true,
+			"**/*.pyc": true,
+			".venv": true
+		},
+		"search.exclude": {
+			"**/__pycache__": true,
+			"**/node_modules": true,
+			".venv": true
+		}
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-python.python",
+			"ms-python.vscode-pylance"
+		]
+	}
+}
